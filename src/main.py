@@ -1,15 +1,4 @@
-import json
-import tempfile
-import os
-from datetime import datetime
-
-from src.protocol import RawTask
-from task import Task
-from descriptors import TaskValidationError
-from file_source import FileTaskSource
-from random_source import RandomTaskSource
-from api_source import ApiStubSource
-from protocol import TaskSource
+from src.first_laba.protocol import TaskSource
 
 
 def process_tasks(source):

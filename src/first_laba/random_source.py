@@ -1,7 +1,7 @@
 import random
 import string
 from typing import Iterable
-from protocol import RawTask, TaskSource
+from .protocol import RawTask
 
 
 class RandomTaskSource:
