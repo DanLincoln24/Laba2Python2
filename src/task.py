@@ -1,5 +1,5 @@
 from datetime import datetime
-from descriptors import (
+from .descriptors import (
     IdDescriptor, DescriptionDescriptor, PriorityDescriptor,
     StatusDescriptor, CreatedAtDescriptor
 )
