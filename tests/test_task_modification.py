@@ -1,10 +1,6 @@
 import unittest
-import json
-import tempfile
-import os
-from datetime import datetime, timedelta
-from src.task import Task
-from src.descriptors import TaskValidationError
+from src.second_laba.task import Task
+from src.second_laba.descriptors import TaskValidationError
 
 class TestTaskModification(unittest.TestCase):
 

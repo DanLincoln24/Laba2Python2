@@ -1,105 +1,199 @@
 # Laba2Python2
 # Гаврилов Данила 103
-# Лабораторная работа №2: Модель задачи (дескрипторы и property)
+# Платформа обработки задач
 
-## Цель работы
+Проект реализует платформу для приёма, хранения и обработки задач из различных источников. Состоит из трёх последовательных лабораторных работ, каждая из которых расширяет функциональность системы.
+
+---
+
+## Лабораторная работа №1: Источники задач и контракты
+
+### Цель работы
+Освоить duck typing и контрактное программирование на примере источников задач без использования наследования.
+
+### Реализованные компоненты
+
+#### Протокол TaskSource (`protocol.py`)
+```python
+@runtime_checkable
+class TaskSource(Protocol):
+    def get_tasks(self) -> Iterable[RawTask]: ...
+```
+
+#### RawTask (`protocol.py`)
+Легковесная структура данных для передачи задач от источников:
+- `id: int | str` — идентификатор задачи
+- `payload: Any` — пользовательские данные
+
+#### Источники задач
+
+| Класс | Описание |
+|-------|----------|
+| `FileTaskSource` | Загружает задачи из JSON-файла |
+| `RandomTaskSource` | Генерирует случайные задачи (id и payload) |
+| `ApiStubSource` | Имитирует получение задач из внешнего API |
+
+#### Ключевые особенности
+- Источники не связаны общим базовым классом
+- Контракт описан через `typing.Protocol`
+- Runtime-проверка: `isinstance(source, TaskSource)`
+- Ленивая генерация задач через `yield`
+
+## Лабораторная работа №2: Модель задачи (дескрипторы и property)
+
+### Цель работы
 Освоить управление доступом к атрибутам и защиту инвариантов доменной модели с использованием дескрипторов и property.
 
-## Структура проекта
+### Реализованные компоненты
 
-````
-Laba2Python2/
-├── src/ # Исходный код
-│ ├── init.py # Пакетный файл
-│ ├── task.py # Класс Task с дескрипторами
-│ ├── descriptors.py # Дескрипторы и исключения
-│ ├── protocol.py # Протокол TaskSource и RawTask
-│ ├── file_source.py # Источник из файла
-│ ├── random_source.py # Генератор случайных задач
-│ ├── api_source.py # API-заглушка
-│ └── main.py # Демонстрационный скрипт
-├── tests/ # Тесты
-│ ├── test_descriptors.py # Тесты дескрипторов
-│ ├── test_property.py # Тесты property
-│ └── test_task_modification.py # Тесты модификации
-└── README.md # Документация
-````
-## Описание классов и компонентов
+#### Дескрипторы (`descriptors.py`)
 
-### 1. Дескрипторы (descriptors.py)
+**`TaskValidationError`** — специализированное исключение для ошибок валидации.
 
-#### TaskValidationError
-Специализированное исключение для ошибок валидации задачи.
+**`ValidatedDescriptor`** — абстрактный data-дескриптор:
+- `__set_name__` — автоматически создаёт приватное имя `_атрибут`
+- `__get__` — возвращает значение из приватного хранилища
+- `__set__` — вызывает `validate()` и сохраняет значение
 
-#### ValidatedDescriptor (базовый класс)
-Абстрактный data-дескриптор, обеспечивающий перехват доступа к атрибутам и вызов валидации.
+**Конкретные дескрипторы:**
 
-**Методы:**
-- `__set_name__` – автоматически создаёт приватное имя `_атрибут`
-- `__get__` – возвращает значение из приватного хранилища
-- `__set__` – вызывает `validate()` и сохраняет значение
-- `validate` – абстрактный метод для переопределения
-
-#### Конкретные дескрипторы:
 | Дескриптор | Назначение | Правила валидации |
 |------------|------------|-------------------|
-| `IdDescriptor` | Идентификатор | int>0 или непустая str |
-| `DescriptionDescriptor` | Описание | непустая str, ≤500 символов |
-| `PriorityDescriptor` | Приоритет | int от 1 до 5 |
-| `StatusDescriptor` | Статус | str из {created, in_progress, completed, canceled} |
-| `CreatedAtDescriptor` | Время создания | datetime не в будущем |
+| `IdDescriptor` | Идентификатор | `int > 0` или непустая `str` |
+| `DescriptionDescriptor` | Описание | `str`, непустая, ≤ 500 символов |
+| `PriorityDescriptor` | Приоритет | `int` от 1 до 5 |
+| `StatusDescriptor` | Статус | `created` / `in_progress` / `completed` / `canceled` |
+| `CreatedAtDescriptor` | Время создания | `datetime`, не в будущем |
 
-### 2. Класс Task (task.py)
+#### Класс `Task` (`task.py`)
 
-Модель задачи с валидацией атрибутов через дескрипторы.
+**Атрибуты (через дескрипторы):**
+- `id` — идентификатор задачи
+- `description` — описание задачи
+- `priority` — приоритет (1-5)
+- `status` — статус (по умолчанию `'created'`)
+- `created_at` — время создания (по умолчанию `datetime.now()`)
 
-**Атрибуты:**
-- `id` – идентификатор (int или str)
-- `description` – описание (str)
-- `priority` – приоритет (int 1-5)
-- `status` – статус (str, по умолчанию 'created')
-- `created_at` – время создания (datetime, по умолчанию текущее)
+**Вычисляемые свойства (`@property`):**
+- `is_ready: bool` — готовность к выполнению (`status == 'created'` и `priority ≥ 3`)
+- `age: float` — возраст задачи в секундах
 
-**Вычисляемые свойства:**
-- `is_ready` – готовность к выполнению (статус 'created' и priority ≥ 3)
-- `age` – возраст задачи в секундах
+### Ключевые особенности
+- Data descriptors для контроля записи атрибутов
+- Non-data descriptor `@property` для вычисляемых полей
+- Предотвращение некорректных состояний объекта
+- Защита от обхода валидации через `__dict__`
 
-### 3. Источники задач (sources)
+## Лабораторная работа №3: Очередь задач (итераторы и генераторы)
 
-#### RawTask (protocol.py)
-Простая структура для передачи данных от источников (из первой лабораторной).
+### Цель работы
+Научиться реализовывать пользовательские коллекции и ленивую обработку задач.
 
-#### TaskSource (protocol.py)
-Протокол, определяющий контракт для всех источников задач.
+### Реализованные компоненты
 
-#### Реализации источников:
-- `FileTaskSource` – чтение задач из JSON-файла
-- `RandomTaskSource` – генерация случайных задач
-- `ApiStubSource` – API-заглушка с фиксированными данными
+#### `TaskQueueIterator` (`queue.py`)
+Итератор для последовательного обхода задач в очереди:
+- `__iter__` — возвращает себя
+- `__next__` — возвращает следующую задачу или `raise StopIteration`
 
-## Принцип работы
+#### `TaskQueue` (`queue.py`)
+Очередь задач с поддержкой протокола итерации.
 
-### Дескрипторы как контроллёры доступа
+**Методы:**
 
-1. **Перехват присваивания**: при операции `task.id = 101` вызывается `__set__` дескриптора
-2. **Валидация**: дескриптор вызывает свой метод `validate()`
-3. **Сохранение**: после успешной проверки значение сохраняется в `_id`
-4. **Чтение**: при `task.id` дескриптор возвращает значение из `_id`
+| Метод | Описание |
+|-------|----------|
+| `__init__(tasks=None)` | Создание очереди (пустой или с начальными задачами) |
+| `add_task(task)` | Добавление задачи в очередь |
+| `__iter__()` | Возвращает новый `TaskQueueIterator` |
+| `__len__()` | Количество задач в очереди |
+| `tasks_by_status(status)` | Ленивый фильтр по статусу (генератор) |
+| `tasks_by_priority(min_priority)` | Ленивый фильтр по приоритету (генератор) |
 
-### Property как вычисляемые атрибуты
+### Ключевые особенности
+- **Iterable vs Iterator**: очередь — Iterable, возвращает новый Iterator при каждом `__iter__`
+- **Повторный обход**: `for task in queue` работает многократно
+- **Ленивые фильтры**: `tasks_by_status()` и `tasks_by_priority()` — генераторы, не создают промежуточных коллекций
+- **Совместимость со стандартными функциями**: `len()`, `sum()`, `max()`, `min()`, `sorted()`, `list()`, `filter()`, `map()`, `any()`, `all()`
 
+### Пример использования
 ```python
-@property
-def is_ready(self) -> bool:
-    return self.status == 'created' and self.priority >= 3
+from src.first_laba.task import Task
+from src.third_laba.queue import TaskQueue
+
+queue = TaskQueue()
+queue.add_task(Task(id=1, description="Срочно", priority=5))
+queue.add_task(Task(id=2, description="Обычная", priority=3))
+
+# Повторный обход
+print([t.id for t in queue])  # [1, 2]
+print([t.id for t in queue])  # [1, 2]
+
+# Ленивые фильтры
+for task in queue.tasks_by_priority(4):
+    print(f"Высокий приоритет: {task.id}")
+
+# Стандартные функции
+total_priority = sum(t.priority for t in queue)
 ```
-* Выглядит как обычный атрибут, но вычисляется на лету
 
-* Не имеет setter, поэтому доступен только для чтения
+## Структура проекта
+```
+Laba2Python2/
+├── src/
+│ ├── first_laba/ # Лабораторная работа №1
+│ │ ├── init.py
+│ │ ├── protocol.py # TaskSource и RawTask
+│ │ ├── api_source.py # ApiStubSource
+│ │ ├── file_source.py # FileTaskSource
+│ │ └── random_source.py # RandomTaskSource
+│ ├── second_laba/ # Лабораторная работа №2
+│ │ ├── init.py
+│ │ ├── task.py # Класс Task
+│ │ ├── descriptors.py # Дескрипторы
+│ │ └── runtime_check.py # Runtime-проверка протокола
+│ └── third_laba/ # Лабораторная работа №3
+│ ├── init.py
+│ ├── queue.py # TaskQueue и TaskQueueIterator
+│ └── demo.py # Демонстрация
+├── tests/
+│ ├── init.py
+│ ├── test_descriptors.py # Тесты дескрипторов
+│ ├── test_property.py # Тесты свойств Task
+│ ├── test_sources.py # Тесты источников
+│ ├── test_task_modification.py # Тесты модификации задач
+│ ├── test_queue.py # Тесты очереди задач
+│ └── test_integration.py # Интеграционные тесты
+├── tasks.json # Пример файла с задачами
+└── README.md
+```
 
-* Всегда актуален, не требует синхронизации
-## Запуск тестов
+## Запуск всех тестов
 ````bash
 cd C:\Users\Данила\данек\Laba2Python2
 python -m unittest discover tests -v
 ````
+## Интеграция компонентов
+
+1. **Источник** (`FileTaskSource`, `RandomTaskSource`, `ApiStubSource`) генерирует `RawTask`
+2. `RawTask` преобразуется в `Task` с валидацией через дескрипторы
+3. `Task` добавляется в `TaskQueue`
+4. `TaskQueue` предоставляет итерацию и ленивую фильтрацию
+
+```python
+source = FileTaskSource("tasks.json")
+queue = TaskQueue()
+
+for raw in source.get_tasks():
+    task = Task(
+        id=raw.id,
+        description=str(raw.payload),
+        priority=3
+    )
+    queue.add_task(task)
+
+# Работа с очередью
+for task in queue.tasks_by_status("created"):
+    if task.is_ready:
+        print(f"Готова к выполнению: {task.id}")
+```

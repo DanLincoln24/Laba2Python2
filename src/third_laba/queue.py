@@ -1,5 +1,5 @@
 from typing import Iterator, List, Optional
-from src.task import Task
+from src.second_laba.task import Task
 
 
 class TaskQueueIterator:

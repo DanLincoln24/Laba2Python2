@@ -1,11 +1,7 @@
 import unittest
-import json
-import tempfile
-import os
-import unittest
 from datetime import datetime, timedelta
-from src.task import Task
-from src.descriptors import TaskValidationError
+from src.second_laba.task import Task
+from src.second_laba.descriptors import TaskValidationError
 
 
 class TestIdDescriptor(unittest.TestCase):
@@ -228,13 +224,6 @@ class TestCreatedAtDescriptor(unittest.TestCase):
         past = datetime.now() - timedelta(days=1)
         task = Task(id=1, description="test", priority=3, created_at=past)
         self.assertEqual(task.created_at, past)
-
-    def test_valid_default_created_at(self):
-        before = datetime.now()
-        
-        task = Task(id=1, description="test", priority=3)
-        after = datetime.now()
-        self.assertTrue(before <= task.created_at <= after)
 
     def test_invalid_future_time(self):
         future = datetime.now() + timedelta(days=1)

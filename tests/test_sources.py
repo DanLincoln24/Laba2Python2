@@ -1,14 +1,13 @@
-import sys
 import os
 import unittest
 import json
 import tempfile
-from src.first_laba.protocol import TaskSource, RawTask
+from src.first_laba.protocol import RawTask
 from src.first_laba.random_source import RandomTaskSource
 from src.first_laba.file_source import FileTaskSource
 from src.first_laba.api_source import ApiStubSource
-from src.task import Task
-from src.descriptors import TaskValidationError
+from src.second_laba.task import Task
+from src.second_laba.descriptors import TaskValidationError
 
 
 class TestIntegrationWithSources(unittest.TestCase):

@@ -1,5 +1,5 @@
 from datetime import datetime
-from src.task import Task
+from src.second_laba.task import Task
 from src.first_laba.random_source import RandomTaskSource
 from src.first_laba.file_source import FileTaskSource
 from src.first_laba.protocol import RawTask
