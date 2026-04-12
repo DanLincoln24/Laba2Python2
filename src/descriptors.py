@@ -52,7 +52,6 @@ class PriorityDescriptor(ValidatedDescriptor):
 
 class StatusDescriptor(ValidatedDescriptor):
     allowed_statuses = {'created', 'in_progress', 'completed', 'canceled'}
-
     def validate(self, value):
         if not isinstance(value, str):
             raise TaskValidationError(f"Статус должен быть str, получен {type(value).__name__}")

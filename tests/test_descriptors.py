@@ -231,6 +231,7 @@ class TestCreatedAtDescriptor(unittest.TestCase):
 
     def test_valid_default_created_at(self):
         before = datetime.now()
+        
         task = Task(id=1, description="test", priority=3)
         after = datetime.now()
         self.assertTrue(before <= task.created_at <= after)

@@ -139,6 +139,3 @@ class TestTaskSourceProtocol(unittest.TestCase):
         self.assertEqual(task.id, 1)
         self.assertEqual(task.payload, "test")
 
-
-if __name__ == "__main__":
-    unittest.main()

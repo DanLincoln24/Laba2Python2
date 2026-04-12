@@ -13,9 +13,7 @@ class Task:
     created_at = CreatedAtDescriptor()
 
     def __init__(self, id: int | str, description: str, priority: int,
-                 status: str = 'created', created_at: datetime = None):
-        if created_at is None:
-            created_at = datetime.now()
+                 status: str = 'created', created_at: datetime = datetime.now()):
         self.id = id
         self.description = description
         self.priority = priority
