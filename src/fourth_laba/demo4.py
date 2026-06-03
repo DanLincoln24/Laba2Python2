@@ -28,8 +28,10 @@ async def main():
         try:
             for raw in src.get_tasks():
                 desc = str(raw.payload)
-                if isinstance(raw.id, int) and raw.id <= 0:
-                    task_id = abs(raw.id) + 1
+                if isinstance(raw.id, int):
+                    task_id = 1000 + abs(raw.id)
+                elif isinstance(raw.id, int):
+                    task_id = raw.id
                 else:
                     task_id = raw.id
                 task = Task(

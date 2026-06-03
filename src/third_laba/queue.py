@@ -19,7 +19,7 @@ class TaskQueueIterator:
 
 
 class TaskQueue:
-    def __init__(self, tasks: Optional[List[Task]] = None):
+    def __init__(self, tasks: List[Task] | None = None):
         self._tasks = tasks if tasks is not None else []
 
     def add_task(self, task: Task) -> None:
@@ -43,3 +43,13 @@ class TaskQueue:
 
     def __repr__(self) -> str:
         return f"TaskQueue({len(self._tasks)} tasks)"
+
+task123 = Task(id = 1, description='wrkjgmer', priority=4)
+task124 = Task(id = 2, description='wrыапкjgmer', priority=1)
+task125 = Task(id = 3, description='wrыапкjыцпкmer', priority=5)
+queue = TaskQueue()
+queue.add_task(task123)
+queue.add_task(task124)
+queue.add_task(task125)
+for t in queue.tasks_by_priority(3):
+    print(t)

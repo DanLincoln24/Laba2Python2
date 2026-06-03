@@ -137,34 +137,157 @@ for task in queue.tasks_by_priority(4):
 total_priority = sum(t.priority for t in queue)
 ```
 
-## Структура проекта
+## Лабораторная работа №4: Асинхронный исполнитель задач
+
+### Цель работы
+Научиться реализовывать приложения с асинхронной моделью управления на основе `asyncio`, включая конкурентную обработку задач, контекстные менеджеры для управления ресурсами и расширяемые обработчики через протоколы.
+
+### Реализованные компоненты
+
+#### Протокол обработчика `TaskHandler` (`handlers.py`)
+```python
+@runtime_checkable
+class TaskHandler(Protocol):
+    def can_handle(self, task: Task) -> bool: ...
+    async def handle(self, task: Task) -> None: ...
 ```
+
+# Контракт обработчика
+
+Любой обработчик должен соответствовать следующему контракту:
+
+- `can_handle(task)` — проверяет, может ли обработчик обработать конкретную задачу
+- `handle(task)` — асинхронно обрабатывает задачу
+
+---
+
+## Обработчики (`handlers.py`)
+
+| Класс | Описание | Условие `can_handle` |
+|-------|----------|----------------------|
+| `PrintHandler` | Выводит информацию о задаче с имитацией работы | Любая задача |
+| `FailingHandler` | Падает с ошибкой на задачах с высоким приоритетом | Любая задача |
+| `PriorityBasedHandler` | Обрабатывает только высокоприоритетные задачи | `priority >= 4` |
+
+---
+
+## Исключения (`executor.py`)
+
+| Класс | Назначение |
+|-------|-------------|
+| `ExecutorError` | Базовое исключение исполнителя |
+| `TaskProcessingError` | Ошибка при обработке конкретной задачи (сохраняет задачу и причину) |
+| `HandlerNotFoundError` | Ни один обработчик не может обработать задачу |
+| `ExecutorNotStartedError` | Попытка использовать исполнитель до запуска (`async with`) |
+
+---
+
+## Асинхронный исполнитель `AsyncTaskExecutor` (`executor.py`)
+
+### Параметры конструктора
+
+- `workers: int = 2` — количество параллельных worker-корутин
+- `log_level: int = logging.INFO` — уровень логирования
+
+### Методы
+
+| Метод | Тип | Описание |
+|-------|-----|----------|
+| `register_handler(handler)` | Синхронный | Регистрирует обработчик с проверкой через `isinstance(handler, TaskHandler)` |
+| `submit(task)` | Корутина | Добавляет задачу в `asyncio.Queue` (producer) |
+| `wait_all()` | Корутина | Ожидает завершения обработки всех задач (`await queue.join()`) |
+| `errors` | Property | Возвращает список ошибок `TaskProcessingError` |
+| `__aenter__()` | Корутина | Создаёт очередь и запускает worker'ы через `asyncio.create_task` |
+| `__aexit__()` | Корутина | Отправляет sentinel'ы (`None`) и ожидает завершения worker'ов через `asyncio.gather` |
+
+### Внутренний метод
+
+- `_worker_loop(name)` — фоновый цикл worker'а (consumer): получает задачу из очереди, ищет первый подходящий обработчик через `can_handle()`, вызывает `await handler.handle(task)`, в блоке `finally` вызывает `queue.task_done()`
+
+---
+
+## Ключевые особенности
+
+- **Асинхронная очередь:** `asyncio.Queue` для неблокирующего обмена задачами между producer и consumer
+- **Конкурентная обработка:** несколько worker-корутин запускаются через `asyncio.create_task` и работают параллельно
+- **Контекстный менеджер:** `async with AsyncTaskExecutor(workers=3) as executor:` — автоматический запуск и остановка worker'ов
+- **Расширяемость:** новые обработчики добавляются без изменения кода исполнителя — достаточно реализовать протокол `TaskHandler`
+- **Цепочка обработчиков:** для каждой задачи выбирается первый подходящий по `can_handle()`
+- **Централизованная обработка ошибок:** все исключения перехватываются в `_worker_loop`, оборачиваются в `TaskProcessingError` и сохраняются в `_errors`
+- **Логирование:** все ключевые события (запуск, регистрация обработчиков, обработка задач, ошибки, остановка) пишутся через `logging`
+- **Отсутствие блокирующих операций:** только `asyncio.sleep()` для имитации I/O, никаких `time.sleep()`
+- **Sentinel-паттерн:** `None` в очереди сигнализирует worker'у о завершении
+- **return_exceptions=True:** при ожидании worker'ов через `gather` исключения не пробрасываются, а сохраняются
+
+---
+
+## Пример использования
+
+```python
+import asyncio
+from src.first_laba.random_source import RandomTaskSource
+from src.second_laba.task import Task
+from src.third_laba.queue import TaskQueue
+from src.fourth_laba.executor import AsyncTaskExecutor
+from src.fourth_laba.handlers import PrintHandler, PriorityBasedHandler
+
+async def main():
+    # Сбор задач из источников (лаб. 1-3)
+    source = RandomTaskSource(count=5)
+    queue = TaskQueue()
+    for raw in source.get_tasks():
+        task = Task(
+            id=raw.id + 1,
+            description=str(raw.payload),
+            priority=3
+        )
+        queue.add_task(task)
+
+    # Асинхронная обработка (лаб. 4)
+    async with AsyncTaskExecutor(workers=2) as executor:
+        executor.register_handler(PrintHandler())
+        executor.register_handler(PriorityBasedHandler())
+
+        for task in queue:
+            await executor.submit(task)
+
+        await executor.wait_all()
+
+        if executor.errors:
+            for err in executor.errors:
+                print(f"Ошибка: {err}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```  
+## Структура проекта
+```text
 Laba2Python2/
 ├── src/
-│ ├── first_laba/ # Лабораторная работа №1
-│ │ ├── init.py
-│ │ ├── protocol.py # TaskSource и RawTask
-│ │ ├── api_source.py # ApiStubSource
-│ │ ├── file_source.py # FileTaskSource
-│ │ └── random_source.py # RandomTaskSource
-│ ├── second_laba/ # Лабораторная работа №2
-│ │ ├── init.py
-│ │ ├── task.py # Класс Task
-│ │ ├── descriptors.py # Дескрипторы
-│ │ └── runtime_check.py # Runtime-проверка протокола
-│ └── third_laba/ # Лабораторная работа №3
-│ ├── init.py
-│ ├── queue.py # TaskQueue и TaskQueueIterator
-│ └── demo.py # Демонстрация
+│   ├── first_laba/                     # Лабораторная работа №1
+│   │   ├── __init__.py
+│   │   ├── protocol.py                 # TaskSource и RawTask
+│   │   ├── api_source.py               # ApiStubSource
+│   │   ├── file_source.py              # FileTaskSource
+│   │   └── random_source.py            # RandomTaskSource
+│   ├── second_laba/                    # Лабораторная работа №2
+│   │   ├── __init__.py
+│   │   ├── task.py                     # Класс Task
+│   │   ├── descriptors.py              # Дескрипторы
+│   │   └── runtime_check.py            # Runtime-проверка протокола
+│   └── third_laba/                     # Лабораторная работа №3
+│       ├── __init__.py
+│       ├── queue.py                    # TaskQueue и TaskQueueIterator
+│       └── demo.py                     # Демонстрация
 ├── tests/
-│ ├── init.py
-│ ├── test_descriptors.py # Тесты дескрипторов
-│ ├── test_property.py # Тесты свойств Task
-│ ├── test_sources.py # Тесты источников
-│ ├── test_task_modification.py # Тесты модификации задач
-│ ├── test_queue.py # Тесты очереди задач
-│ └── test_integration.py # Интеграционные тесты
-├── tasks.json # Пример файла с задачами
+│   ├── __init__.py
+│   ├── test_descriptors.py             # Тесты дескрипторов
+│   ├── test_property.py                # Тесты свойств Task
+│   ├── test_sources.py                 # Тесты источников
+│   ├── test_task_modification.py       # Тесты модификации задач
+│   ├── test_queue.py                   # Тесты очереди задач
+│   └── test_integration.py             # Интеграционные тесты
+├── tasks.json                          # Пример файла с задачами
 └── README.md
 ```
 

@@ -9,10 +9,8 @@ from src.third_laba.queue import TaskQueue
 def raw_to_task(raw: RawTask) -> Task:
     desc = str(raw.payload)
 
-    if isinstance(raw.id, int) and raw.id == 0:
+    if isinstance(raw.id, int):
         task_id = raw.id + 1
-    elif isinstance(raw.id, int) and raw.id > 0:
-        task_id = raw.id
     else:
         task_id = raw.id
 
@@ -26,7 +24,7 @@ def raw_to_task(raw: RawTask) -> Task:
 
 
 def main():
-    print("1. Загрузка из RandomTaskSource (5 задач):")
+    print(" Загрузка из RandomTaskSource (5 задач):")
     random_source = RandomTaskSource(count=5)
     queue = TaskQueue()
     for raw in random_source.get_tasks():
@@ -36,11 +34,11 @@ def main():
 
     print(f"\nОчередь: {queue}")
 
-    print("\n2. Повторный обход:")
+    print("\n Повторный обход:")
     print("   Первый проход:", [t.id for t in queue])
     print("   Второй проход:", [t.id for t in queue])
 
-    print("\n3. Стандартные функции:")
+    print("\n Стандартные функции:")
     print(f"   Всего задач: {len(queue)}")
     print(f"   Сумма приоритетов: {sum(t.priority for t in queue)}")
 
@@ -48,7 +46,7 @@ def main():
     if priorities:
         print(f"   Максимальный приоритет: {max(priorities)}")
 
-    print("\n4. Ленивые фильтры:")
+    print("\n Ленивые фильтры:")
     print("   Задачи со статусом 'created':")
     for task in queue.tasks_by_status('created'):
         print(f"     - {task.id} (priority={task.priority})")
@@ -72,7 +70,7 @@ def main():
             desc_preview = task.description[:30] + "..." if len(task.description) > 30 else task.description
             print(f"   {task.id}: {desc_preview}")
     except FileNotFoundError:
-        print("\n5. Файл tasks.json не найден")
+        print("\n Файл tasks.json не найден")
     except Exception as e:
         print(f"\n5. Ошибка при загрузке из файла: {e}")
 
